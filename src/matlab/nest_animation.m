@@ -1,112 +1,51 @@
-function nest_animation(G, p, ax, recorder)
-% NEST_ANIMATION 三阶段鸟巢动画（含生长/延展）
-%   G:          几何数据（来自 nest_geometry）
-%   p:          参数字典（含视觉/动画参数）
-%   ax:         axes 句柄
-%   recorder:   VideoWriter 句柄（可选，为空时仅实时显示）
+function nest_animation(G, ax, record_mode, fps)
+% NEST_ANIMATION 三阶段鸟巢动画 (Iteration 2)
+if nargin < 4, fps = 18; end
+if nargin < 3, record_mode = false; end
+dt_grow = 0.03; dt_rule = 0.05; hold_t = 0.8; final_t = 2.0; vw = [];
 
-% 阶段 0：空坐标系
-title(ax, '');
-cla(ax); hold(ax, 'on');
-view(ax, [p.az, p.el]); axis(ax, 'equal');
-xlim(ax, [-p.a-1, p.a+1]); ylim(ax, [-p.b-1, p.b+1]); zlim(ax, [-2*p.c, 2*p.c]);
-xlabel(ax, 'x'); ylabel(ax, 'y'); zlabel(ax, 'z');
-grid(ax, 'on'); box(ax, 'on');
-
-% 椭圆地面环
-ell = G.ellipse_pts;
-plot3(ax, ell(1,:), ell(2,:), zeros(1,200), 'Color', [0.5 0.5 0.5]);
-drawnow; pause(p.hold_t);
-
-% 阶段 1：立柱生长
-title(ax, '\color{black}阶段1：立柱升起');
-
-pillar_h = gobjects(1, p.N);
-for i = 1:p.N
-    pillar_h(i) = plot3(ax, [G.pillars(1,i) G.pillars(1,i)], ...
-                            [G.pillars(2,i) G.pillars(2,i)], ...
-                            [0 0], ...
-                            'Color', [0 114 189]/255, 'LineWidth', 2);
+if record_mode
+    if ~exist('out','dir'), mkdir('out'); end
+    vw = VideoWriter('out/nest.mp4','MPEG-4'); vw.FrameRate = fps; open(vw);
 end
-
-for i = 1:p.N
-    z_target = G.pillars(3,i);
-    for frm = 1:p.n_pillar
-        t = frm / p.n_pillar;
-        set(pillar_h(i), 'ZData', [0, t * z_target]);
-        drawnow;
-        if ~isempty(recorder)
-            writeVideo(recorder, getframe(ax.Parent));
-        end
+    function wf()
+        drawnow; if record_mode, writeVideo(vw, getframe(ax.Parent)); end
     end
-    pause(p.dt);  % 每根完成后停顿
-end
-
-% 阶段 2：曲面片 + 母线
-title(ax, '\color{black}阶段2：直线构成曲面');
-pause(p.hold_t * 0.5);
-
-% 半透明曲面片
-surf(ax, G.surf_mesh.X, G.surf_mesh.Y, G.surf_mesh.Z, ...
-    'FaceAlpha', p.alpha_surf, 'EdgeColor', 'none', ...
-    'FaceColor', [237 177 32]/255);
-drawnow;
-
-% u=const 组母线（#EDB120）
-rule_uh = gobjects(1, length(G.rule_u));
-for k = 1:length(G.rule_u)
-    d = G.rule_u{k};
-    % 零长初态（起点=终点在参数负端），避免「先全出现再消失」
-    rule_uh(k) = plot3(ax, [d(1,1) d(1,1)], [d(2,1) d(2,1)], [d(3,1) d(3,1)], ...
-        'Color', [237 177 32]/255, 'LineWidth', 1.5);
-end
-drawnow;  % 刷新隐藏零长线
-
-for k = 1:length(G.rule_u)
-    d = G.rule_u{k};
-    xs = d(1,1); ys = d(2,1); zs = d(3,1);
-    xe = d(1,2); ye = d(2,2); ze = d(3,2);
-    for frm = 1:p.n_rule
-        t = frm / p.n_rule;
-        set(rule_uh(k), ...
-            'XData', [xs, xs + t*(xe-xs)], ...
-            'YData', [ys, ys + t*(ye-ys)], ...
-            'ZData', [zs, zs + t*(ze-zs)]);
-        drawnow;
-        if ~isempty(recorder)
-            writeVideo(recorder, getframe(ax.Parent));
-        end
+    function pf(d)
+        if record_mode, for j=1:round(d*fps), writeVideo(vw,getframe(ax.Parent)); end
+        else, pause(d); end
     end
-    pause(p.dt);
-end
 
-% v=const 组母线（#FFD060）
-rule_vh = gobjects(1, length(G.rule_v));
-for k = 1:length(G.rule_v)
-    d = G.rule_v{k};
-    rule_vh(k) = plot3(ax, [d(1,1) d(1,1)], [d(2,1) d(2,1)], [d(3,1) d(3,1)], ...
-        'Color', [255 208 96]/255, 'LineWidth', 1.5);
-end
-drawnow;
+% Stage 0
+cla(ax); hold(ax,'on'); view(ax,[-20 25]); daspect(ax,[1 1 1]);
+xlim(ax,[-65 65]); ylim(ax,[-58 58]); zlim(ax,[0 38]);
+xlabel(ax,'X'); ylabel(ax,'Y'); zlabel(ax,'Z'); grid(ax,'on');
+plot3(ax,G.ellipse_outer(1,:),G.ellipse_outer(2,:),zeros(1,200),'Color',[0.5 0.5 0.5],'LineStyle','--');
+plot3(ax,G.ellipse_inner(1,:),G.ellipse_inner(2,:),zeros(1,200),'Color',[0.5 0.5 0.5],'LineStyle',':');
+title(ax,'Stage 0: Coordinate System'); wf(); pf(hold_t);
 
-for k = 1:length(G.rule_v)
-    d = G.rule_v{k};
-    xs = d(1,1); ys = d(2,1); zs = d(3,1);
-    xe = d(1,2); ye = d(2,2); ze = d(3,2);
-    for frm = 1:p.n_rule
-        t = frm / p.n_rule;
-        set(rule_vh(k), ...
-            'XData', [xs, xs + t*(xe-xs)], ...
-            'YData', [ys, ys + t*(ye-ys)], ...
-            'ZData', [zs, zs + t*(ze-zs)]);
-        drawnow;
-        if ~isempty(recorder)
-            writeVideo(recorder, getframe(ax.Parent));
-        end
+% Transition 0->1: pillars grow
+title(ax,'Stage 1: Pillars Rising');
+Np = size(G.pillars,1); ph = gobjects(Np,1);
+for i=1:Np, ph(i)=plot3(ax,[G.pillars(i,1) G.pillars(i,1)],[G.pillars(i,2) G.pillars(i,2)],[0 0],'Color',[0.75 0.75 0.75],'LineWidth',3); end
+for i=1:Np
+    zt=G.pillars(i,4); nf=max(1,round(dt_grow*fps));
+    for fr=1:nf, t=fr/nf; set(ph(i),'ZData',[0 t*zt]); wf(); end
+end
+pf(hold_t);
+
+% Transition 1->2: roof extend
+title(ax,'Stage 2: Rulings Appear');
+Ns = length(G.roof_segments); rh = gobjects(Ns,1);
+for i=1:Ns
+    s=G.roof_segments{i}; rh(i)=plot3(ax,[s(1,1) s(1,1)],[s(1,2) s(1,2)],[s(1,3) s(1,3)],'Color',[0.93 0.69 0.13],'LineWidth',2);
+end
+for i=1:Ns
+    s=G.roof_segments{i}; nf=max(1,round(dt_rule*fps));
+    for fr=1:nf, t=fr/nf;
+        set(rh(i),'XData',[s(1,1) s(1,1)+t*(s(2,1)-s(1,1))],'YData',[s(1,2) s(1,2)+t*(s(2,2)-s(1,2))],'ZData',[s(1,3) s(1,3)+t*(s(2,3)-s(1,3))]); wf();
     end
-    pause(p.dt);
 end
-
-% 终态停留
-pause(1.5);
+title(ax,'Bird Nest: HP Ruled Surface'); pf(final_t);
+if record_mode, close(vw); fprintf('MP4: out/nest.mp4\n'); end
 end
