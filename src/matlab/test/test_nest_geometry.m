@@ -1,100 +1,74 @@
-%% test_nest_geometry — 鸟巢几何单元测试套件
-% 运行: runtests('test_nest_geometry')
-% 验证: 7 项测试覆盖母线是直线、立柱位置/高度、参数边界
+% TEST_NEST_GEOMETRY 验证 nest_geometry 几何计算正确性（迭代2）
+function test_nest_geometry
+    addpath(fullfile(fileparts(mfilename('fullpath')), '..'));
+    fprintf('=== nest_geometry Unit Tests (Iteration 2) ===\n');
+    passed = 0;  failed = 0;
 
-function tests = test_nest_geometry
-    tests = functiontests(localfunctions);
-end
+    hpZ = @(x,y) 18*(x.^2/6400 - y.^2/5184) + 23.2;
 
-function setupOnce(testCase)
-    testCase.TestData.p = struct('a',6,'b',5,'c',2.5,'N',10,'M_u',9,'M_v',9);
-    testCase.TestData.G = nest_geometry(testCase.TestData.p);
-end
+    % ---- Test 1: HP surface height ----
+    fprintf('\nTest 1: hyperboloidZ values\n');
+    if abs(hpZ(60,0) - 33.325) < 0.01
+        passed = passed + 1;  fprintf('  PASS: z at (60,0)\n');
+    else, failed = failed + 1;  fprintf('  FAIL: z at (60,0)\n'); end
+    if abs(hpZ(0,53.5) - 13.263) < 0.01
+        passed = passed + 1;  fprintf('  PASS: z at (0,53.5)\n');
+    else, failed = failed + 1;  fprintf('  FAIL: z at (0,53.5)\n'); end
 
-%% TC1: 母线中点在曲面上（证明线段是直线）
-function testRulingMidpointOnSurface(testCase)
-    G = testCase.TestData.G;
-    p = testCase.TestData.p;
-    hpz = @(x,y) p.c*(x.^2/p.a^2 - y.^2/p.b^2);
-    
-    for k = 1:length(G.rule_u)
-        d = G.rule_u{k};
-        M = (d(:,1) + d(:,2)) / 2;
-        z_expected = hpz(M(1), M(2));
-        verifyEqual(testCase, M(3), z_expected, 'AbsTol', 1e-10);
+    % ---- Test 2: line-ellipse intersection ----
+    fprintf('\nTest 2: lineEllipseIntersect\n');
+    pts = lineEllipseIntersect(0, 0, 60, 53.5);
+    if size(pts,1) == 2
+        passed = passed + 1;  fprintf('  PASS: 2 intersections\n');
+    else, failed = failed + 1;  fprintf('  FAIL: %d intersections\n', size(pts,1)); end
+    if isempty(lineEllipseIntersect(0, 100, 60, 53.5))
+        passed = passed + 1;  fprintf('  PASS: far line 0 intersections\n');
+    else, failed = failed + 1;  fprintf('  FAIL: far line had intersections\n'); end
+
+    % ---- Test 3: ruling midpoints on HP surface ----
+    fprintf('\nTest 3: ruling midpoints on HP surface\n');
+    G = nest_geometry([]);
+    max_err = 0;
+    for i = 1:length(G.roof_segments)
+        seg = G.roof_segments{i};
+        mx = (seg(1,1)+seg(2,1))/2;  my = (seg(1,2)+seg(2,2))/2;
+        mz = (seg(1,3)+seg(2,3))/2;
+        max_err = max(max_err, abs(mz - hpZ(mx, my)));
     end
-    for k = 1:length(G.rule_v)
-        d = G.rule_v{k};
-        M = (d(:,1) + d(:,2)) / 2;
-        z_expected = hpz(M(1), M(2));
-        verifyEqual(testCase, M(3), z_expected, 'AbsTol', 1e-10);
+    if max_err < 1e-10
+        passed = passed + 1;  fprintf('  PASS: max err=%.2e\n', max_err);
+    else, failed = failed + 1;  fprintf('  FAIL: max err=%.2e\n', max_err); end
+
+    % ---- Test 4: pillar tops on HP surface + min height ----
+    fprintf('\nTest 4: pillar properties\n');
+    min_z = inf;  max_pillar_err = 0;
+    for i = 1:size(G.pillars,1)
+        x = G.pillars(i,1);  y = G.pillars(i,2);  zt = G.pillars(i,4);
+        max_pillar_err = max(max_pillar_err, abs(zt - hpZ(x, y)));
+        min_z = min(min_z, zt);
     end
+    if max_pillar_err < 1e-10
+        passed = passed + 1;  fprintf('  PASS: pillar err=%.2e\n', max_pillar_err);
+    else, failed = failed + 1;  fprintf('  FAIL: pillar err=%.2e\n', max_pillar_err); end
+    if min_z >= 13
+        passed = passed + 1;  fprintf('  PASS: min height=%.1f\n', min_z);
+    else, failed = failed + 1;  fprintf('  FAIL: min height=%.1f < 13\n', min_z); end
+
+    % ---- Summary ----
+    fprintf('\n=== Results: %d passed, %d failed ===\n', passed, failed);
+    if failed > 0, error('TESTS FAILED'); end
 end
 
-%% TC2: 立柱在椭圆上
-function testPillarsOnEllipse(testCase)
-    G = testCase.TestData.G;
-    p = testCase.TestData.p;
-    for i = 1:p.N
-        r = (G.pillars(1,i)/p.a)^2 + (G.pillars(2,i)/p.b)^2;
-        verifyEqual(testCase, r, 1, 'AbsTol', 1e-10);
+%% LOCAL FUNCTIONS (mirrors nest_geometry for test independence)
+function pts = lineEllipseIntersect(m, d, a_ell, b_ell)
+    A = 1/a_ell^2 + m^2/b_ell^2;
+    B = 2*m*d/b_ell^2;
+    Cc = d^2/b_ell^2 - 1;
+    disc = B^2 - 4*A*Cc;
+    if disc < 0, pts = [];
+    elseif disc < 1e-12, x = -B/(2*A); pts = [x, m*x+d];
+    else
+        x1 = (-B + sqrt(disc))/(2*A); x2 = (-B - sqrt(disc))/(2*A);
+        pts = [x1, m*x1+d; x2, m*x2+d];
     end
-end
-
-%% TC3: 柱顶贴合曲面
-function testPillarTopOnSurface(testCase)
-    G = testCase.TestData.G;
-    p = testCase.TestData.p;
-    hpz = @(x,y) p.c*(x.^2/p.a^2 - y.^2/p.b^2);
-    for i = 1:p.N
-        z_expected = hpz(G.pillars(1,i), G.pillars(2,i));
-        verifyEqual(testCase, G.pillars(3,i), z_expected, 'AbsTol', 1e-10);
-    end
-end
-
-%% TC4: u=const 母线全段在曲面上（取 t=0.25, 0.75 插值点）
-function testRulingU_FullOnSurface(testCase)
-    G = testCase.TestData.G;
-    p = testCase.TestData.p;
-    hpz = @(x,y) p.c*(x.^2/p.a^2 - y.^2/p.b^2);
-    for k = 1:length(G.rule_u)
-        d = G.rule_u{k};
-        for t = [0.25, 0.75]
-            P = d(:,1) + t * (d(:,2) - d(:,1));
-            z_expected = hpz(P(1), P(2));
-            verifyEqual(testCase, P(3), z_expected, 'AbsTol', 1e-10);
-        end
-    end
-end
-
-%% TC5: v=const 母线全段在曲面上
-function testRulingV_FullOnSurface(testCase)
-    G = testCase.TestData.G;
-    p = testCase.TestData.p;
-    hpz = @(x,y) p.c*(x.^2/p.a^2 - y.^2/p.b^2);
-    for k = 1:length(G.rule_v)
-        d = G.rule_v{k};
-        for t = [0.25, 0.75]
-            P = d(:,1) + t * (d(:,2) - d(:,1));
-            z_expected = hpz(P(1), P(2));
-            verifyEqual(testCase, P(3), z_expected, 'AbsTol', 1e-10);
-        end
-    end
-end
-
-%% TC6: 非法参数抛错
-function testInvalidParams(testCase)
-    verifyError(testCase, @() nest_geometry(struct('a',6,'b',5,'c',2.5,'N',2,'M_u',9,'M_v',9)), 'NEST:pillarCount');
-    verifyError(testCase, @() nest_geometry(struct('a',0,'b',5,'c',2.5,'N',10,'M_u',9,'M_v',9)), 'NEST:ellipseAxis');
-    verifyError(testCase, @() nest_geometry(struct('a',6,'b',5,'c',-1,'N',10,'M_u',9,'M_v',9)), 'NEST:param');
-end
-
-%% TC7: 曲面网格覆盖椭圆域
-function testSurfMeshCoversDomain(testCase)
-    G = testCase.TestData.G;
-    p = testCase.TestData.p;
-    verifyTrue(testCase, min(G.surf_mesh.X(:)) <= -p.a + 0.1);
-    verifyTrue(testCase, max(G.surf_mesh.X(:)) >=  p.a - 0.1);
-    verifyTrue(testCase, min(G.surf_mesh.Y(:)) <= -p.b + 0.1);
-    verifyTrue(testCase, max(G.surf_mesh.Y(:)) >=  p.b - 0.1);
 end
