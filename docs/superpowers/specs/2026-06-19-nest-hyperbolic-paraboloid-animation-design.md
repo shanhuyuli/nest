@@ -1,7 +1,11 @@
 # 鸟巢双曲抛物面动画 — 设计文档 (Spec)
 
 - **日期**: 2026-06-19
-- **状态**: Grilled（已通过 grill-with-docs 细化，12 项决策确认）
+- **状态**: Implemented（已通过第三阶段开发实施完成）
+- **关联实施计划**: `docs/superpowers/plans/2026-06-19-nest-hp-animation-plan.md`
+- **关联源代码**: `src/matlab/`（`nest_geometry.m`, `nest_animation.m`, `run_nest_demo.m`）
+- **关联测试**: `src/matlab/test/test_nest_geometry.m`（7/7 通过）
+- **关联产出**: `out/nest.mp4`, `out/nest.gif`
 - **主题**: MATLAB 多阶段动画，课堂演示「用直线搭建双曲抛物面（马鞍面）」
 - **关联设计稿**: `designs/nest-hp-animation/Nest Animation Design.html`
 - **可视化预览**: `http://localhost:4311/nest-hp-animation/Nest Animation Design.html`
