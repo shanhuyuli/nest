@@ -186,11 +186,12 @@ xlabel('X'); ylabel('Y'); zlabel('Z');
 zlim([0, max(pillars(:,4)) * 1.1]);
 title(sprintf('PROTOTYPE: %du+%dv rulings, %d pillars, %d segments', ...
     Nu, Nv, size(pillars,1), length(roof_segments)));
-view(-35, 30);
+drawnow;
+view(-42, 30);  % az=-42 (clockwise 7deg from -35), el=30
 
 % Save image for inspection
 mkdir('tmp');
-saveas(gcf, 'tmp/prototype_geo_verify.png');
+print('-dpng', '-r150', 'tmp/prototype_geo_verify.png');
 fprintf('\nFigure saved to tmp/prototype_geo_verify.png\n');
 fprintf('===== PROTOTYPE COMPLETE =====\n');
 
