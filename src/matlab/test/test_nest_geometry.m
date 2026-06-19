@@ -1,6 +1,6 @@
 % TEST_NEST_GEOMETRY 验证 nest_geometry 几何计算正确性（迭代2）
-function test_nest_geometry
-    addpath(fullfile(fileparts(mfilename('fullpath')), '..'));
+% 运行: run('test_nest_geometry')
+addpath(fullfile(fileparts(mfilename('fullpath')), '..'));
     fprintf('=== nest_geometry Unit Tests (Iteration 2) ===\n');
     passed = 0;  failed = 0;
 
@@ -57,7 +57,6 @@ function test_nest_geometry
     % ---- Summary ----
     fprintf('\n=== Results: %d passed, %d failed ===\n', passed, failed);
     if failed > 0, error('TESTS FAILED'); end
-end
 
 %% LOCAL FUNCTIONS (mirrors nest_geometry for test independence)
 function pts = lineEllipseIntersect(m, d, a_ell, b_ell)
