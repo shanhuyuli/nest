@@ -1,0 +1,409 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>鸟巢双曲抛物面动画 — 设计稿</title>
+<style>
+  :root{
+    --bg:#0f1419; --panel:#1a2028; --panel-2:#222b36; --text:#e6edf3;
+    --muted:#8b97a4; --line:#2d3744; --blue:#0072BD; --orange:#EDB120;
+    --accent:#4cc9f0; --ok:#3dd68c; --warn:#ffb454;
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  html,body{background:var(--bg); color:var(--text); font-family:-apple-system,"SF Pro Text","PingFang SC","Noto Sans SC",sans-serif; line-height:1.6;}
+  body{padding:24px; max-width:1400px; margin:0 auto;}
+  h1{font-size:26px; margin-bottom:4px; letter-spacing:.5px;}
+  h2{font-size:20px; margin:28px 0 12px; padding-bottom:8px; border-bottom:1px solid var(--line); display:flex; align-items:center; gap:10px;}
+  h2 .num{background:var(--accent); color:#06222b; width:26px; height:26px; border-radius:6px; display:inline-flex; align-items:center; justify-content:center; font-size:14px; font-weight:700;}
+  h3{font-size:15px; margin:16px 0 8px; color:var(--accent);}
+  .subtitle{color:var(--muted); font-size:14px; margin-bottom:20px;}
+  .pill{display:inline-block; background:var(--panel-2); border:1px solid var(--line); border-radius:999px; padding:2px 10px; font-size:12px; color:var(--muted); margin-right:6px;}
+  .tag-blue{color:var(--blue); border-color:var(--blue);}
+  .tag-orange{color:var(--orange); border-color:var(--orange);}
+
+  .grid{display:grid; gap:16px;}
+  .grid-3{grid-template-columns:repeat(3,1fr);}
+  .grid-2{grid-template-columns:1fr 1fr;}
+  @media(max-width:900px){.grid-3,.grid-2{grid-template-columns:1fr;}}
+
+  .panel{background:var(--panel); border:1px solid var(--line); border-radius:10px; padding:16px;}
+  .panel h3{margin-top:0;}
+  .kv{display:grid; grid-template-columns:auto 1fr; gap:6px 14px; font-size:13px;}
+  .kv dt{color:var(--muted);}
+  .kv dd{font-family:ui-monospace,"SF Mono",Consolas,monospace; color:var(--accent);}
+
+  .stage-card{background:var(--panel); border:1px solid var(--line); border-radius:10px; overflow:hidden;}
+  .stage-card .head{padding:12px 14px; border-bottom:1px solid var(--line); display:flex; justify-content:space-between; align-items:center;}
+  .stage-card .head .t{font-weight:600; font-size:14px;}
+  .stage-card .head .step{font-size:11px; color:var(--muted);}
+  .preview3d{height:280px; background:#0a0e13; position:relative;}
+  .preview3d canvas{display:block; width:100%; height:100%;}
+  .stage-card .body{padding:12px 14px; font-size:13px; color:var(--muted);}
+  .stage-card .body b{color:var(--text); font-weight:600;}
+
+  .swatch-row{display:flex; gap:12px; align-items:center; margin-top:8px;}
+  .swatch{display:flex; align-items:center; gap:8px; font-size:13px;}
+  .chip{width:22px; height:22px; border-radius:5px; border:1px solid rgba(255,255,255,.15);}
+
+  .math{background:#0a0e13; border:1px solid var(--line); border-radius:8px; padding:14px 16px; font-family:ui-monospace,"SF Mono",Consolas,monospace; font-size:13px; overflow-x:auto;}
+  .math .cmt{color:var(--muted);}
+  .math .hl{color:var(--ok);}
+
+  table{width:100%; border-collapse:collapse; font-size:13px;}
+  th,td{text-align:left; padding:8px 10px; border-bottom:1px solid var(--line);}
+  th{color:var(--muted); font-weight:600; font-size:12px; text-transform:uppercase; letter-spacing:.5px;}
+
+  .controls{position:fixed; bottom:16px; right:16px; background:var(--panel-2); border:1px solid var(--line); border-radius:10px; padding:12px 14px; font-size:12px; min-width:200px; z-index:50;}
+  .controls label{display:block; color:var(--muted); margin:8px 0 3px;}
+  .controls .row{display:flex; gap:8px; align-items:center;}
+  .controls input[type=range]{flex:1;}
+  .controls .val{font-family:ui-monospace,monospace; color:var(--accent); width:42px; text-align:right;}
+  .controls button{background:var(--accent); color:#06222b; border:none; border-radius:6px; padding:6px 12px; font-weight:600; cursor:pointer; margin-top:8px; width:100%;}
+  .controls .toggle{display:flex; gap:6px; flex-wrap:wrap;}
+  .controls .toggle button{background:var(--panel); color:var(--text); border:1px solid var(--line); font-weight:500; flex:1; padding:5px 6px; font-size:11px;}
+  .controls .toggle button.on{background:var(--accent); color:#06222b; border-color:var(--accent);}
+
+  .legend{display:flex; gap:16px; flex-wrap:wrap; font-size:12px; color:var(--muted); padding:8px 0;}
+  .legend span{display:flex; align-items:center; gap:6px;}
+  .dot{width:12px; height:3px; border-radius:2px;}
+
+  .footnote{color:var(--muted); font-size:12px; margin-top:24px; padding-top:16px; border-top:1px solid var(--line);}
+  code{background:var(--panel-2); padding:1px 5px; border-radius:3px; font-size:12px; color:var(--accent);}
+</style>
+</head>
+<body>
+
+<h1>鸟巢双曲抛物面动画 · 设计稿</h1>
+<p class="subtitle">课堂演示：用直线搭建双曲抛物面（马鞍面）· MATLAB 多阶段动画 · 设计版本 v1</p>
+<div>
+  <span class="pill">交付：实时脚本 + mp4/gif</span>
+  <span class="pill">视角：侧俯 az=−35°, el=30°</span>
+  <span class="pill tag-blue">立柱 #0072BD</span>
+  <span class="pill tag-orange">母线 #EDB120</span>
+</div>
+
+<!-- ==================== 3 阶段分镜 ==================== -->
+<h2><span class="num">1</span> 三阶段动画分镜</h2>
+<p class="subtitle" style="margin-top:0">每阶段为可独立讲解的视觉单元，阶段间用「逐根出现」过渡动画衔接。下方为 Three.js 实时 3D 预览，可旋转观察。</p>
+
+<div class="grid grid-3">
+  <!-- Stage 0 -->
+  <div class="stage-card">
+    <div class="head"><span class="t">阶段 0 · 空坐标系</span><span class="step">0 / 2</span></div>
+    <div class="preview3d" data-stage="0"></div>
+    <div class="body">
+      <b>状态：</b>仅渲染地面网格 + 三轴（X/Y/Z），标注坐标。<br>
+      <b>目的：</b>建立空间参照，让学生预期后续构件落点。
+    </div>
+  </div>
+  <!-- Stage 1 -->
+  <div class="stage-card">
+    <div class="head"><span class="t">阶段 1 · 蓝立柱升起</span><span class="step">1 / 2</span></div>
+    <div class="preview3d" data-stage="1"></div>
+    <div class="body">
+      <b>状态：</b>沿椭圆环逐根升起 <b style="color:var(--blue)">蓝色立柱</b>（N=10）。柱顶高度 = 双曲抛物面在该(x,y)处的 z 值。<br>
+      <b>过渡：</b>逐根从 z=0 升至目标高度。
+    </div>
+  </div>
+  <!-- Stage 2 -->
+  <div class="stage-card">
+    <div class="head"><span class="t">阶段 2 · 橙母线铺出</span><span class="step">2 / 2</span></div>
+    <div class="preview3d" data-stage="2"></div>
+    <div class="body">
+      <b>状态：</b>逐根铺出 <b style="color:var(--orange)">橙色直纹母线</b>（两组：u=const + v=const），其下叠半透明曲面片。<br>
+      <b>过渡：</b>母线逐条从一端延展到另一端。
+    </div>
+  </div>
+</div>
+<div class="legend">
+  <span><span class="dot" style="background:var(--blue)"></span>立柱（竖直立杆，颜色①）</span>
+  <span><span class="dot" style="background:var(--orange)"></span>屋顶直纹母线（颜色②，两组都画）</span>
+  <span><span class="dot" style="background:rgba(237,177,32,.25)"></span>半透明双曲抛物面背景</span>
+  <span><span class="dot" style="background:rgba(255,255,255,.12)"></span>椭圆地面网格</span>
+</div>
+
+<!-- ==================== 数学 ==================== -->
+<h2><span class="num">2</span> 核心数学：双重直纹面证明</h2>
+<div class="grid grid-2">
+  <div class="panel">
+    <h3>曲面方程与因式分解</h3>
+    <div class="math">
+<span class="cmt">% 标准双曲抛物面（马鞍面）</span>
+z = x²/a² − y²/b²
+<span class="cmt">% 因式分解 → 关键！</span>
+z = (x/a − y/b)(x/a + y/b)
+
+<span class="cmt">% 令 u = x/a − y/b ,  v = x/a + y/b</span>
+z = u · v
+    </div>
+    <p style="font-size:13px; color:var(--muted); margin-top:10px;">
+      固定 <code>u=u₀</code> ⟹ z 随 v 线性变化 ⟹ <b style="color:var(--ok)">一条直线</b>。<br>
+      固定 <code>v=v₀</code> ⟹ z 随 u 线性变化 ⟹ <b style="color:var(--ok)">另一条直线</b>。<br>
+      过曲面每点恰有两条母线 → 双重直纹面。
+    </p>
+  </div>
+  <div class="panel">
+    <h3>每组母线用「两端点」定义（证明笔直）</h3>
+    <div class="math">
+<span class="cmt">% u=const 这组，取两个不同的 v：</span>
+P₁ = ( x(u₀,v₁), y(u₀,v₁), z(u₀,v₁) )
+P₂ = ( x(u₀,v₂), y(u₀,v₂), z(u₀,v₂) )
+<span class="cmt">% 反解：x = a(u+v)/2, y = b(v−u)/2, z = u·v</span>
+L(t) = P₁ + t·(P₂ − P₁),  t∈[0,1]
+<span class="cmt">% 母线 = P₁ 到 P₂ 的线段 → MATLAB plot3 一笔直线</span>
+    </div>
+    <p style="font-size:13px; color:var(--muted); margin-top:10px;">
+      每条母线只取两个端点 <code>plot3</code> 即可，无需采样中间点。
+      <b>单元测试</b>：线段中点 z 值应等于曲面 z 值（容差 1e-10）→ 证明是直线。
+    </p>
+  </div>
+</div>
+
+<!-- ==================== 几何参数 ==================== -->
+<h2><span class="num">3</span> 几何参数与默认值</h2>
+<div class="panel">
+  <table>
+    <thead><tr><th>参数</th><th>符号</th><th>默认值</th><th>说明</th></tr></thead>
+    <tbody>
+      <tr><td>椭圆长半轴</td><td><code>a</code></td><td>6</td><td>鸟巢外形长轴半径</td></tr>
+      <tr><td>椭圆短半轴</td><td><code>b</code></td><td>4</td><td>鸟巢外形短轴半径</td></tr>
+      <tr><td>立柱数量</td><td><code>N</code></td><td>10</td><td>沿椭圆环均匀分布（稀疏清晰）</td></tr>
+      <tr><td>曲面翘起量</td><td><code>c</code></td><td>2.5</td><td>缩放 z = c·(x²/a² − y²/b²)，控制马鞍起伏明显度</td></tr>
+      <tr><td>母线组1条数</td><td><code>M_u</code></td><td>9</td><td>u=const 这组母线</td></tr>
+      <tr><td>母线组2条数</td><td><code>M_v</code></td><td>9</td><td>v=const 这组母线</td></tr>
+      <tr><td>方位角</td><td><code>az</code></td><td>−35°</td><td>侧俯视角（MATLAB view）</td></tr>
+      <tr><td>仰角</td><td><code>el</code></td><td>30°</td><td>侧俯视角</td></tr>
+      <tr><td>过渡帧间隔</td><td><code>dt</code></td><td>0.15 s</td><td>逐根出现时每根之间停顿</td></tr>
+    </tbody>
+  </table>
+</div>
+
+<!-- ==================== 配色 ==================== -->
+<h2><span class="num">4</span> 配色规范（高对比 · 色盲友好）</h2>
+<div class="panel">
+  <div class="swatch-row">
+    <div class="swatch"><span class="chip" style="background:#0072BD"></span> 立柱 #0072BD（MATLAB 蓝）</div>
+    <div class="swatch"><span class="chip" style="background:#EDB120"></span> 母线 #EDB120（MATLAB 橙）</div>
+    <div class="swatch"><span class="chip" style="background:rgba(237,177,32,.22)"></span> 曲面片 alpha=0.22</div>
+    <div class="swatch"><span class="chip" style="background:#3dd68c"></span> 高亮强调（可选）</div>
+  </div>
+  <p style="font-size:13px; color:var(--muted); margin-top:10px;">
+    蓝/橙为互补色，对红绿色盲（最常见类型）可区分；均为 MATLAB 默认色序，在投影仪上对比度高。
+  </p>
+</div>
+
+<!-- ==================== 代码架构 ==================== -->
+<h2><span class="num">5</span> 代码架构（模块化）</h2>
+<div class="panel">
+  <table>
+    <thead><tr><th>文件</th><th>职责</th><th>可独立测试</th></tr></thead>
+    <tbody>
+      <tr><td><code>nest_geometry.m</code></td><td>纯几何：椭圆环柱位、曲面 z、两组母线端点参数化生成</td><td>✓ 单元测试：母线中点在曲面上</td></tr>
+      <tr><td><code>nest_animation.m</code></td><td>3 阶段渲染 + 逐根过渡，操作 figure/axes/plot3</td><td>—（视觉）</td></tr>
+      <tr><td><code>run_nest_demo.m</code></td><td>驱动入口 + <code>record</code> 开关 → VideoWriter 导出 mp4</td><td>—</td></tr>
+      <tr><td><code>test_nest_geometry.m</code></td><td>单元测试套件（用 assert 验证母线是直线）</td><td>✓</td></tr>
+    </tbody>
+  </table>
+</div>
+
+<!-- ==================== 交互控件 ==================== -->
+<div class="controls" id="tweaks">
+  <div style="font-weight:600; margin-bottom:4px;">⚙ 参数调节（实时预览）</div>
+  <label>立柱数 N <span id="vN" style="float:right;font-family:monospace;color:var(--accent)">10</span></label>
+  <div class="row"><input type="range" id="rN" min="4" max="24" value="10"></div>
+  <label>翘起量 c <span id="vC" style="float:right;font-family:monospace;color:var(--accent)">2.5</span></label>
+  <div class="row"><input type="range" id="rC" min="0.5" max="5" step="0.1" value="2.5"></div>
+  <label>母线组1条数 <span id="vMu" style="float:right;font-family:monospace;color:var(--accent)">9</span></label>
+  <div class="row"><input type="range" id="rMu" min="3" max="20" value="9"></div>
+  <label>母线组2条数 <span id="vMv" style="float:right;font-family:monospace;color:var(--accent)">9</span></label>
+  <div class="row"><input type="range" id="rMv" min="3" max="20" value="9"></div>
+  <label>显示层</label>
+  <div class="toggle">
+    <button class="on" data-layer="pillars">立柱</button>
+    <button class="on" data-layer="u">母线u</button>
+    <button class="on" data-layer="v">母线v</button>
+    <button class="on" data-layer="surface">曲面</button>
+  </div>
+  <button id="btnAnim">▶ 播放逐根动画</button>
+</div>
+
+<p class="footnote">
+  设计稿用途：在 MATLAB 实现前，于浏览器中以真实 3D 确认几何（椭圆环+马鞍+双重直纹母线）、配色、相机视角与密度。
+  可拖动任一预览框旋转视角。参数调节实时反映到所有三个预览框。
+</p>
+
+<!-- ==================== Three.js 3D 预览 ==================== -->
+<script type="importmap">
+{ "imports": { "three": "https://unpkg.com/three@0.160.0/build/three.module.js" } }
+</script>
+<script type="module">
+import * as THREE from 'three';
+
+const params = { N:10, a:6, b:4, c:2.5, Mu:9, Mv:9, pillars:true, u:true, v:true, surface:true };
+
+// 双曲抛物面 z = c*(x²/a² − y²/b²)
+function hpZ(x,y){ return params.c*(x*x/(params.a*params.a) - y*y/(params.b*params.b)); }
+// u,v <-> x,y  （z=u·v 体系，u=x/a−y/b, v=x/a+y/b, c 缩放后 z=c·u·v）
+// 为匹配 c 缩放，定义 u' = u·?, 直接用: x=a(u+v)/2*... 此处用标准映射：
+// 让 u,v 在 [-1,1] 区间取值, x = a*(u+v)/2, y = b*(v-u)/2, z = c*u*v
+function xyFromUV(u,v){ return { x: params.a*(u+v)/2, y: params.b*(v-u)/2 }; }
+function zFromUV(u,v){ return params.c*u*v; }
+
+function buildScene(){
+  const group = new THREE.Group();
+  // 地面椭圆网格
+  const grid = new THREE.PolarGridHelper(7, 12, 8, 64, 0x2d3744, 0x1a2028);
+  grid.rotation.x = Math.PI/2;
+  group.add(grid);
+
+  // 半透明曲面片
+  if(params.surface){
+    const seg=30;
+    const geo=new THREE.PlaneGeometry(2*params.a, 2*params.b, seg, seg);
+    const pos=geo.attributes.position;
+    for(let i=0;i<pos.count;i++){
+      const x=pos.getX(i), y=pos.getY(i);
+      pos.setZ(i, hpZ(x,y));
+    }
+    geo.computeVertexNormals();
+    const mat=new THREE.MeshBasicMaterial({color:0xEDB120, transparent:true, opacity:0.18, side:THREE.DoubleSide, depthWrite:false});
+    group.add(new THREE.Mesh(geo, mat));
+    // 线框
+    const wf=new THREE.MeshBasicMaterial({color:0xEDB120, wireframe:true, transparent:true, opacity:0.12});
+    group.add(new THREE.Mesh(geo, wf));
+  }
+
+  // 立柱（椭圆环）
+  if(params.pillars){
+    const pillarMat=new THREE.LineBasicMaterial({color:0x0072BD, linewidth:2});
+    const N=params.N;
+    for(let i=0;i<N;i++){
+      const th=2*Math.PI*i/N;
+      const x=params.a*Math.cos(th), y=params.b*Math.sin(th);
+      const topZ=hpZ(x,y);
+      const geo=new THREE.BufferGeometry().setFromPoints([
+        new THREE.Vector3(x,y,0), new THREE.Vector3(x,y,topZ)
+      ]);
+      group.add(new THREE.Line(geo, pillarMat));
+    }
+  }
+
+  // 母线 u=const 与 v=const（域 u,v ∈ [-1,1]）
+  const uMat=new THREE.LineBasicMaterial({color:0xEDB120});
+  const vMat=new THREE.LineBasicMaterial({color:0xFFD060});
+  // u=const: v 从 -1 到 1
+  if(params.u){
+    for(let k=1;k<params.Mu;k++){
+      const u=-1 + 2*k/params.Mu;
+      const p0=xyFromUV(u,-1), p2=xyFromUV(u,1);
+      const z0=zFromUV(u,-1), z2=zFromUV(u,1);
+      const geo=new THREE.BufferGeometry().setFromPoints([
+        new THREE.Vector3(p0.x,p0.y,z0), new THREE.Vector3(p2.x,p2.y,z2)
+      ]);
+      group.add(new THREE.Line(geo,uMat));
+    }
+  }
+  if(params.v){
+    for(let k=1;k<params.Mv;k++){
+      const v=-1 + 2*k/params.Mv;
+      const p0=xyFromUV(-1,v), p2=xyFromUV(1,v);
+      const z0=zFromUV(-1,v), z2=zFromUV(1,v);
+      const geo=new THREE.BufferGeometry().setFromPoints([
+        new THREE.Vector3(p0.x,p0.y,z0), new THREE.Vector3(p2.x,p2.y,z2)
+      ]);
+      group.add(new THREE.Line(geo,vMat));
+    }
+  }
+  return group;
+}
+
+// 为每个预览框创建场景
+const viewers=[];
+document.querySelectorAll('.preview3d').forEach(el=>{
+  const scene=new THREE.Scene();
+  const cam=new THREE.PerspectiveCamera(45, el.clientWidth/el.clientHeight, 0.1, 100);
+  const renderer=new THREE.WebGLRenderer({antialias:true});
+  renderer.setSize(el.clientWidth, el.clientHeight);
+  el.appendChild(renderer.domElement);
+
+  // 侧俯视角 az=-35, el=30
+  const az=-35*Math.PI/180, el=30*Math.PI/180, R=24;
+  cam.position.set(R*Math.cos(el)*Math.sin(az), R*Math.sin(el), R*Math.cos(el)*Math.cos(az));
+  // 注意 three Y 是上轴，而我们的几何 z 是上 → 把场景绕 X 转 90°
+  const pivot=new THREE.Group(); pivot.rotation.x=Math.PI/2;
+  scene.add(pivot);
+
+  const content=buildScene();
+  pivot.add(content);
+
+  // 简易拖拽旋转
+  let dragging=false, lx=0, ly=0;
+  let yaw=Math.PI, pitch=0.4;
+  el.addEventListener('mousedown',e=>{dragging=true; lx=e.clientX; ly=e.clientY;});
+  window.addEventListener('mouseup',()=>dragging=false);
+  window.addEventListener('mousemove',e=>{
+    if(!dragging) return;
+    yaw += (e.clientX-lx)*0.01; pitch += (e.clientY-ly)*0.01; pitch=Math.max(-1.4,Math.min(1.4,pitch));
+    lx=e.clientX; ly=e.clientY;
+  });
+
+  viewers.push({el, scene, cam, renderer, pivot, content, yaw, pitch,
+    get yawG(){return yaw;}, get pitchG(){return pitch;}});
+});
+
+function rebuildAll(){
+  viewers.forEach(v=>{
+    v.pivot.remove(v.content);
+    v.content.geometry?.dispose?.();
+    v.content=buildScene();
+    v.pivot.add(v.content);
+  });
+}
+
+function animate(){
+  requestAnimationFrame(animate);
+  viewers.forEach(v=>{
+    const R=24;
+    v.cam.position.set(R*Math.cos(v.pitch)*Math.sin(v.yaw), R*Math.sin(v.pitch), R*Math.cos(v.pitch)*Math.cos(v.yaw));
+    v.cam.lookAt(0,0,0);
+    v.renderer.render(v.scene, v.cam);
+  });
+}
+animate();
+
+// 控件
+const rN=document.getElementById('rN'), rC=document.getElementById('rC'), rMu=document.getElementById('rMu'), rMv=document.getElementById('rMv');
+rN.oninput=()=>{params.N=+rN.value; document.getElementById('vN').textContent=rN.value; rebuildAll();};
+rC.oninput=()=>{params.c=+rC.value; document.getElementById('vC').textContent=rC.value; rebuildAll();};
+rMu.oninput=()=>{params.Mu=+rMu.value; document.getElementById('vMu').textContent=rMu.value; rebuildAll();};
+rMv.oninput=()=>{params.Mv=+rMv.value; document.getElementById('vMv').textContent=rMv.value; rebuildAll();};
+document.querySelectorAll('.toggle button').forEach(btn=>{
+  btn.onclick=()=>{
+    btn.classList.toggle('on');
+    const on=btn.classList.contains('on');
+    params[btn.dataset.layer]=on;
+    rebuildAll();
+  };
+});
+
+// 逐根动画演示
+document.getElementById('btnAnim').onclick=async()=>{
+  const v=viewers[2]; // 阶段2预览
+  // 临时隐藏母线与立柱，逐根出现
+  const fullN=params.N, fullU=params.Mu, fullV=params.Mv;
+  params.pillars=false; params.u=false; params.v=false; params.surface=true;
+  rebuildAll();
+  params.N=fullN; params.pillars=true; rebuildAll();
+  await new Promise(r=>setTimeout(r,300));
+  for(let k=0;k<fullU;k++){
+    params.Mu=k+1; params.u=true; rebuildAll(); await new Promise(r=>setTimeout(r,150));
+  }
+  for(let k=0;k<fullV;k++){
+    params.Mv=k+1; params.u=true; params.v=true; rebuildAll(); await new Promise(r=>setTimeout(r,150));
+  }
+  params.Mu=fullU; params.Mv=fullV; rebuildAll();
+};
+</script>
+</body>
+</html>

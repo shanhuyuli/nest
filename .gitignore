@@ -1,0 +1,11 @@
+# Superpowers brainstorm visual-companion sessions (local browser mockups)
+.superpowers/
+
+# MATLAB transient outputs
+out/*.mp4
+out/*.gif
+*.asv
+
+# OS / editor
+.DS_Store
+Thumbs.db
