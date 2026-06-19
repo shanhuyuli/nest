@@ -8,9 +8,9 @@ clear; close all; clc;
 %% ===== PARAMETERS (from spec, adjusted for prototype) =====
 ahp = 80;       % HP a parameter (curvature control)
 bhp = 72;       % HP b parameter
-c   = 13.5;     % Saddle scale (5/6 of 16)
-z0  = 23.5;     % Vertical offset (5/6 of 28)
-                % z_min ≈ 16.1, z_max ≈ 31.1
+c   = 11.25;    % Saddle scale (5/6 of 13.5)
+z0  = 19.6;     % Vertical offset (5/6 of 23.5)
+                % z_min ≈ 13.4, z_max ≈ 25.9
 
 a_out = 60;  b_out = 53.5;   % Outer ellipse
 a_in  = 34.4; b_in  = 22.4;  % Inner ellipse (roof opening)
@@ -167,7 +167,7 @@ daspect([1 1 1]);  % Equal aspect now appropriate (height ≈ width)
 
 for i = 1:size(pillars, 1)
     plot3([pillars(i,1), pillars(i,1)], [pillars(i,2), pillars(i,2)], ...
-          [pillars(i,3), pillars(i,4)], 'Color', [0.6 0.6 0.6], 'LineWidth', 3);
+          [pillars(i,3), pillars(i,4)], 'Color', [0.75 0.75 0.75], 'LineWidth', 3);
 end
 
 for i = 1:length(roof_segments)
