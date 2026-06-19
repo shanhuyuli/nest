@@ -8,9 +8,8 @@ clear; close all; clc;
 %% ===== PARAMETERS (from spec, adjusted for prototype) =====
 ahp = 80;       % HP a parameter (curvature control)
 bhp = 72;       % HP b parameter
-c   = 11.25;    % Saddle scale (5/6 of 13.5)
-z0  = 19.6;     % Vertical offset (5/6 of 23.5)
-                % z_min ≈ 13.4, z_max ≈ 25.9
+c   = 18;        % Saddle scale (larger)
+z0  = 23.2;      % Vertical offset
 
 a_out = 60;  b_out = 53.5;   % Outer ellipse
 a_in  = 34.4; b_in  = 22.4;  % Inner ellipse (roof opening)
@@ -160,39 +159,41 @@ fprintf('Max ruling-midpoint vs HP error: %.2e (should be approx 0)\n', max(midp
 fprintf('Avg ruling-midpoint error: %.2e\n', mean(midpoint_errors));
 
 %% ===== 3D RENDERING =====
-figure('Name', 'PROTOTYPE: Nest Geometry Verify', 'Position', [100, 100, 900, 700]);
-hold on; grid on;
-% Use pbaspect to give Z more visual weight (without distorting geometry)
-daspect([1 1 1]);  % Equal aspect now appropriate (height ≈ width)
+fig = figure('Name', 'PROTOTYPE: Nest Geometry Verify', 'Position', [100, 100, 900, 700]);
+ax = axes(fig);
+hold(ax, 'on'); grid(ax, 'on');
+
+	% Match production pattern: view + axis equal (nest_animation.m:23)
+	view(ax, [-20, 25]);
+	axis(ax, 'equal');
 
 for i = 1:size(pillars, 1)
-    plot3([pillars(i,1), pillars(i,1)], [pillars(i,2), pillars(i,2)], ...
+    plot3(ax, [pillars(i,1), pillars(i,1)], [pillars(i,2), pillars(i,2)], ...
           [pillars(i,3), pillars(i,4)], 'Color', [0.75 0.75 0.75], 'LineWidth', 3);
 end
 
 for i = 1:length(roof_segments)
     seg = roof_segments{i};
-    plot3([seg(1,1), seg(2,1)], [seg(1,2), seg(2,2)], ...
+    plot3(ax, [seg(1,1), seg(2,1)], [seg(1,2), seg(2,2)], ...
           [seg(1,3), seg(2,3)], 'Color', [0.93, 0.69, 0.13], 'LineWidth', 2);
 end
 
 theta = linspace(0, 2*pi, 200);
 x_out = a_out * cos(theta); y_out = b_out * sin(theta);
-plot3(x_out, y_out, zeros(size(theta)), 'k--', 'LineWidth', 1);
+plot3(ax, x_out, y_out, zeros(size(theta)), 'k--', 'LineWidth', 1);
 x_in = a_in * cos(theta); y_in = b_in * sin(theta);
-plot3(x_in, y_in, zeros(size(theta)), 'k:', 'LineWidth', 1);
+plot3(ax, x_in, y_in, zeros(size(theta)), 'k:', 'LineWidth', 1);
 
-xlabel('X'); ylabel('Y'); zlabel('Z');
-zlim([0, max(pillars(:,4)) * 1.1]);
-title(sprintf('PROTOTYPE: %du+%dv rulings, %d pillars, %d segments', ...
+xlabel(ax, 'X'); ylabel(ax, 'Y'); zlabel(ax, 'Z');
+zlim(ax, [0, max(pillars(:,4)) * 1.1]);
+	title(ax, sprintf('PROTOTYPE: %du+%dv rulings, %d pillars, %d segments (az=-20 el=20)', ...
     Nu, Nv, size(pillars,1), length(roof_segments)));
-drawnow;
-view(-42, 30);  % az=-42 (clockwise 7deg from -35), el=30
 
-% Save image for inspection
-mkdir('tmp');
-print('-dpng', '-r150', 'tmp/prototype_geo_verify.png');
-fprintf('\nFigure saved to tmp/prototype_geo_verify.png\n');
+	% Save image for inspection
+	mkdir('tmp');
+	drawnow;
+	print(gcf, '-dpng', '-r150', 'tmp/prototype_geo_verify.png');
+	fprintf('\nFigure saved to tmp/prototype_geo_verify.png\n');
 fprintf('===== PROTOTYPE COMPLETE =====\n');
 
 %% ===== LOCAL FUNCTIONS (must be at end in MATLAB scripts) =====
