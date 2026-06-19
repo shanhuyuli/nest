@@ -293,13 +293,17 @@ end
 | gif 导出 | 需要（mp4 + gif 双格式） | §3, §6.3 |
 | 生长/延展帧数 | 立柱 ~8帧/根，母线 ~10帧/条 | §5, §6.2 |
 
-**仍需 prototype 验证的问题**（转入 Task 3）：
+**已验证（prototype 通过）**：
 
-| # | 问题 | 风险 |
+| # | 问题 | 结果 |
 |---|------|------|
-| P1 | `surf` 半透明片在 `VideoWriter` 录制下 alpha 是否正确 | alpha 可能被 encoder 丢弃或变 opaque |
-| P2 | 生长/延展动画用 `set(h,'ZData',...)` 更新句柄在录制模式下逐帧 `writeVideo` 是否流畅 | 帧捕获时机与 drawnow 同步问题 |
-| P3 | gif 从帧循环采集的颜色保真度（256 色调色板 vs 橙蓝色） | 橙色可能 dither 严重 |
+| P1 | `surf` 半透明片在 `VideoWriter` 录制下 alpha 是否正确 | ✅ 通过。MPEG-4 编码器正确捕获半透明曲面片 |
+| P2 | 生长/延展动画用 `set(h,'ZData',...)` 逐帧更新 + `writeVideo` 是否流畅 | ✅ 通过。`set`+`drawnow`+`writeVideo` 三者配合无报错，零长初态→逐帧生长亦可 |
+| P3 | gif 从帧循环采集的颜色保真度（256 色调色板 vs 橙蓝色） | ✅ 通过。`rgb2ind(...,256,'nodither')` 可生成 gif，橙色可辨 |
+
+**原型附注**：
+- 正式代码中必须用**零长初态**创建句柄（`plot3` 起点=终点），再逐帧 `set` 更新，避免「先全出现再生长」问题。
+- gif 单帧采集已成功；动画 gif 需在帧循环中逐帧追加 `imwrite(...,'WriteMode','append')`。
 
 ## 11. 验收标准
 
