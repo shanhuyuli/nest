@@ -1,109 +1,106 @@
 # 🏟️ 鸟巢双曲抛物面动画 — Nest HP Animation
 
-课堂演示：用直线搭建双曲抛物面（马鞍面）。以鸟巢（国家体育场）为载体的 MATLAB 多阶段 3D 动画。
+课堂演示：用直线搭建双曲抛物面（马鞍面）。基于鸟巢（国家体育场）真实构造原理，MATLAB + Python 双语言多阶段 3D 动画。
 
-## 动画预览
+## 数学原理
 
-```text
-阶段 0: 空坐标系        阶段 1: 蓝立柱升起      阶段 2: 橙母线铺出
-(椭圆环 + 三轴)        (逆时针逐根生长)        (先u组后v组延展)
+双曲抛物面为双重直纹面（doubly ruled surface）——过曲面上每一点恰有两条直线。
+
+```math
+z = c · (x²/ahp² − y²/bhp²) + z_offset
+```
+
+通过 **u 族**（`x/ahp − y/bhp = const`）和 **v 族**（`x/ahp + y/bhp = const`）直母线与内外椭圆求交，生成规则交叉编织网，模拟鸟巢屋顶钢结构。
+
+## 动画分镜
+
+```
+阶段 0: 空坐标系           过渡 0→1: 立柱逐根生长       阶段 1: 立柱完成
+(坐标轴+地面网格)          (从 z=0 线性升到HP曲面)    (浅灰立柱，高度各异)
+
+过渡 1→2: 屋顶线逐条铺出   阶段 2: 编织网完成
+(先u族后v族，逐条延展)      (橙色直母线交叉编织)
 ```
 
 ## 环境要求
 
-- Windows 10 或更高版本
-- MATLAB R2021b 或更高版本
+- **MATLAB**: R2021b+
+- **Python**: 3.8+ + `pip install -r src/python/requirements.txt`
 
 ## 快速开始
 
-### 实时动画
-
-1. 打开 MATLAB，切换到 `src/matlab/` 目录。
-2. 在命令窗口运行：
+### MATLAB
 
 ```matlab
-run_nest_demo
+cd src/matlab
+addpath('.')
+run_nest_demo           % 实时动画
+run_nest_demo(true)     % 录制 mp4 → out/nest.mp4
 ```
 
-3. 动画将分三阶段自动播放：
-   - **阶段 0**：空坐标系（椭圆地面环 + 三轴标注）
-   - **阶段 1**：蓝色立柱逐根逆时针升起（生长动画，约 2 秒）
-   - **阶段 2**：橙色直纹母线逐条延展（先 u=const 组后 v=const 组），勾勒出双曲抛物面
+### Python
 
-### 导出视频
-
-```matlab
-% 导出 mp4 + gif
-run_nest_demo('record', true, 'gif', true)
-
-% 仅导出 mp4
-run_nest_demo('record', true)
-
-% 自定义输出路径
-run_nest_demo('record', true, 'out', 'my_nest.mp4')
+```bash
+cd src/python
+pip install -r requirements.txt
+python run_nest_demo.py                  # 实时动画（需要 GUI）
+python run_nest_demo.py out/nest.mp4     # 导出 mp4（需 ffmpeg）
 ```
-
-产物位于 `out/` 目录：
-- `out/nest.mp4` — 视频（H.264 MPEG-4，约 560 KB）
-- `out/nest.gif` — 动画（256 色，可嵌入 PPT）
 
 ### 运行测试
 
 ```matlab
-cd src/matlab
-result = runtests('test/test_nest_geometry');
-disp(result);  % 7/7 通过
+run('src/matlab/test/test_nest_geometry.m')   % MATLAB: 7 项测试
 ```
 
-## 修改参数
-
-编辑 `run_nest_demo.m` 中的默认参数块，或传入 `params` 结构体：
-
-```matlab
-% 方式 1：修改 run_nest_demo.m 中的默认参数
-p = struct(...
-    'a', 6,     ... % 椭圆长半轴（默认 6）
-    'b', 5,     ... % 椭圆短半轴（默认 5，比例 1.2）
-    'c', 2.5,   ... % 翘起量（控制马鞍起伏）
-    'N', 10,    ... % 立柱数量
-    'M_u', 9,   ... % u=const 母线条数
-    'M_v', 9);  ... % v=const 母线条数
-
-% 方式 2：运行时传入
-custom_p = struct('N', 16, 'c', 3.0);
-run_nest_demo('params', custom_p);
+```bash
+cd src/python && pytest test_nest_geometry.py -v   % Python: 9 项测试
 ```
+
+## 参数说明
+
+| 参数 | 值 | 说明 |
+|------|-----|------|
+| ahp, bhp | 80, 72 | HP 曲面曲率参数 |
+| c, z_offset | 18, 23.2 | 翘起量和垂直偏移 |
+| a_out, b_out | 60, 53.5 | 外椭圆（外壳投影） |
+| a_in, b_in | 34.4, 22.4 | 内椭圆（开口投影） |
+| u族, v族 | 各 50 条 | u,v ∈ [-1.06, 1.06] |
+| 相机 | az=-20°, el=25° | 侧俯视 |
+| 立柱 | 浅灰 [0.75 0.75 0.75], 3pt | 仿钢结构 |
+| 屋顶线 | 橙色 #EDB120, 2pt | 直纹母线编织 |
 
 ## 文件结构
 
 ```
-src/matlab/
-├── nest_geometry.m            # 纯几何计算（立柱坐标、母线端点、曲面网格）
-├── nest_animation.m           # 三阶段动画（生长/延展 + 逐帧渲染）
-├── run_nest_demo.m            # 驱动入口 + mp4/gif 导出
-└── test/
-    └── test_nest_geometry.m   # 单元测试（7 项）
-out/
-├── nest.mp4                   # 导出视频
-└── nest.gif                   # 导出 gif（循环播放）
+src/
+├── matlab/
+│   ├── nest_geometry.m           几何引擎（HP曲面 + 椭圆求交 + 直母线）
+│   ├── nest_animation.m          三阶段动画（生长+延展过渡）
+│   ├── run_nest_demo.m           驱动入口 + mp4 导出
+│   └── test/
+│       └── test_nest_geometry.m  单元测试（7项）
+├── python/
+│   ├── nest_geometry.py          几何引擎（对应MATLAB）
+│   ├── nest_animation.py         三阶段动画（matplotlib FuncAnimation）
+│   ├── run_nest_demo.py          驱动入口
+│   ├── test_nest_geometry.py     pytest 单元测试（9项）
+│   └── requirements.txt          依赖清单
+docs/
+├── superpowers/
+│   ├── specs/2026-06-19-nest-iteration2-design.md    设计规格
+│   ├── prd/nest-iteration2-prd.md                    产品需求
+│   └── plans/2026-06-19-nest-iteration2-plan.md      实现计划
 ```
-
-## 核心数学
-
-**双曲抛物面方程**：`z = c·(x²/a² − y²/b²)`
-
-- 参数化：`x = a(u+v)/2`, `y = b(v−u)/2`, `z = c·u·v`（`u,v ∈ [−1,1]`）
-- 固定 `u = u₀`：`z = c·u₀·v` → 随 v 线性变化 → **一条直线**
-- 固定 `v = v₀`：`z = c·v₀·u` → 随 u 线性变化 → **另一条直线**
-- 双重直纹面：过曲面上每一点恰有两条直线
 
 ## 设计文档
 
-- [设计规范](docs/superpowers/specs/2026-06-19-nest-hp-animation-design.md)
-- [PRD (#1)](https://github.com/shanhuyuli/nest/issues/1)
-- [实施计划](docs/superpowers/plans/2026-06-19-nest-hp-animation-plan.md)
+- [迭代2 设计规格](docs/superpowers/specs/2026-06-19-nest-iteration2-design.md)
+- [迭代2 PRD](docs/superpowers/prd/nest-iteration2-prd.md)
+- [迭代2 实现计划](docs/superpowers/plans/2026-06-19-nest-iteration2-plan.md)
+- [GitHub Issues](https://github.com/shanhuyuli/nest/issues)
 - [领域术语表](CONTEXT.md)
-- [3D 可视化设计稿](designs/nest-hp-animation/Nest Animation Design.html) — 浏览器打开预览
+- [迭代1 设计稿](designs/nest-hp-animation/Nest Animation Design.html)
 
 ## 许可证
 
