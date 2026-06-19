@@ -86,6 +86,7 @@ end
 function testInvalidParams(testCase)
     verifyError(testCase, @() nest_geometry(struct('a',6,'b',5,'c',2.5,'N',2,'M_u',9,'M_v',9)), 'NEST:pillarCount');
     verifyError(testCase, @() nest_geometry(struct('a',0,'b',5,'c',2.5,'N',10,'M_u',9,'M_v',9)), 'NEST:ellipseAxis');
+    verifyError(testCase, @() nest_geometry(struct('a',6,'b',5,'c',-1,'N',10,'M_u',9,'M_v',9)), 'NEST:param');
 end
 
 %% TC7: 曲面网格覆盖椭圆域

@@ -40,23 +40,31 @@ G = nest_geometry(p);
 fig = figure('Color', 'w', 'Position', [100 100 900 700], 'Visible', 'on');
 ax = axes(fig);
 
-% 录制逻辑
+% 录制逻辑（GAP 3.1: try-catch 优雅降级）
 if opts.record
     mp4_path = opts.out;
     [mp4_dir, ~] = fileparts(mp4_path);
     if ~exist(mp4_dir, 'dir'), mkdir(mp4_dir); end
     
-    vw = VideoWriter(mp4_path, 'MPEG-4');
-    vw.FrameRate = p.fps;
-    open(vw);
-    nest_animation(G, p, ax, vw);
-    close(vw);
-    fprintf('mp4 已导出: %s\n', mp4_path);
-    
-    if opts.gif
-        gif_path = [mp4_path(1:end-4) '.gif'];
-        mp4_to_gif(mp4_path, gif_path, p.fps);
-        fprintf('gif 已导出: %s\n', gif_path);
+    try
+        vw = VideoWriter(mp4_path, 'MPEG-4');
+        vw.FrameRate = p.fps;
+        open(vw);
+        nest_animation(G, p, ax, vw);
+        close(vw);
+        fprintf('mp4 已导出: %s\n', mp4_path);
+        
+        if opts.gif
+            gif_path = [mp4_path(1:end-4) '.gif'];
+            mp4_to_gif(mp4_path, gif_path, p.fps);
+            fprintf('gif 已导出: %s\n', gif_path);
+        end
+    catch e
+        fprintf('录制失败: %s\n降级为实时动画模式。\n', e.message);
+        close all;  % 清理可能打开的 VideoWriter
+        fig = figure('Color', 'w', 'Position', [100 100 900 700], 'Visible', 'on');
+        ax = axes(fig);
+        nest_animation(G, p, ax, []);
     end
 else
     nest_animation(G, p, ax, []);

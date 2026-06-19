@@ -14,6 +14,9 @@ end
 if p.a <= 0 || p.b <= 0
     error('NEST:ellipseAxis', '椭圆半轴 a,b 必须 > 0');
 end
+if p.c < 0
+    error('NEST:param', '翘起量 c 必须 >= 0，当前 c=%.2f', p.c);
+end
 if p.M_u < 2, p.M_u = 2; end
 if p.M_v < 2, p.M_v = 2; end
 
