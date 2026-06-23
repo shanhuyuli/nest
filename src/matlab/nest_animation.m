@@ -2,7 +2,7 @@ function nest_animation(G, ax, record_mode, fps)
 % NEST_ANIMATION 三阶段鸟巢动画 (Iteration 2)
 if nargin < 4, fps = 18; end
 if nargin < 3, record_mode = false; end
-dt_grow = 0.03; dt_rule = 0.05; hold_t = 0.8; final_t = 2.0; vw = [];
+dt_grow = 0.05; dt_rule = 0.05; hold_t = 0.8; final_t = 2.0; vw = [];
 
 if record_mode
     if ~exist('out','dir'), mkdir('out'); end
