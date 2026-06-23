@@ -25,28 +25,25 @@ plot3(ax,G.ellipse_outer(1,:),G.ellipse_outer(2,:),zeros(1,200),'Color',[0.5 0.5
 plot3(ax,G.ellipse_inner(1,:),G.ellipse_inner(2,:),zeros(1,200),'Color',[0.5 0.5 0.5],'LineStyle',':');
 title(ax,'Stage 0: Coordinate System'); wf(); pf(hold_t);
 
-	% Transition 0->1: pillars grow (sorted by x, left-to-right, batch per frame for 5s total)
-	title(ax,'Stage 1: Pillars Rising');
-	Np = size(G.pillars,1);
-	[~, sort_idx] = sort(G.pillars(:,1));  % sort by x-coordinate
-	total_pillar_frames = round(5 * fps);  % 5 seconds
-	batch_size = max(1, ceil(Np / total_pillar_frames));
-	ph = gobjects(Np,1);
-	for i=1:Np, ph(i)=plot3(ax,[G.pillars(i,1) G.pillars(i,1)],[G.pillars(i,2) G.pillars(i,2)],[0 0],'Color',[0.75 0.75 0.75],'LineWidth',3); end
-	si = 1;
-	while si <= Np
-	    batch_end = min(Np, si + batch_size - 1);
-	    for fr = 1:2  % 2 sub-frames for smooth growth
-	        t = fr / 2;
-	        for k = si:batch_end
-	            i = sort_idx(k);  zt = G.pillars(i,4);
-	            set(ph(i), 'ZData', [0, t * zt]);
-	        end
-	        wf();
-	    end
-	    si = batch_end + 1;
-	end
-	pf(hold_t);
+		% Transition 0->1: pillars appear (sorted by x, left-to-right, instant like rulings)
+		title(ax,'Stage 1: Pillars Rising');
+		Np = size(G.pillars,1);
+		[~, sort_idx] = sort(G.pillars(:,1));  % sort by x-coordinate
+		total_pillar_frames = round(5 * fps);  % 5 seconds
+		batch_size = max(1, ceil(Np / total_pillar_frames));
+		ph = gobjects(Np,1);
+		for i=1:Np, ph(i)=plot3(ax,[G.pillars(i,1) G.pillars(i,1)],[G.pillars(i,2) G.pillars(i,2)],[0 0],'Color',[0.75 0.75 0.75],'LineWidth',3); end
+		si = 1;
+		while si <= Np
+		    batch_end = min(Np, si + batch_size - 1);
+		    for k = si:batch_end
+		        i = sort_idx(k);
+		        set(ph(i), 'ZData', [0, G.pillars(i,4)]);  % instant full height
+		    end
+		    wf();
+		    si = batch_end + 1;
+		end
+		pf(hold_t);
 
 % Transition 1->2: roof extend
 title(ax,'Stage 2: Rulings Appear');
