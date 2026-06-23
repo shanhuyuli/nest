@@ -24,11 +24,14 @@ plot3(ax,G.ellipse_outer(1,:),G.ellipse_outer(2,:),zeros(1,200),'Color',[0.5 0.5
 plot3(ax,G.ellipse_inner(1,:),G.ellipse_inner(2,:),zeros(1,200),'Color',[0.5 0.5 0.5],'LineStyle',':');
 title(ax,'Stage 0: Coordinate System'); wf(); pf(hold_t);
 
-% Transition 0->1: pillars grow
+% Transition 0->1: pillars grow (sorted by x, left-to-right)
 title(ax,'Stage 1: Pillars Rising');
-Np = size(G.pillars,1); ph = gobjects(Np,1);
+Np = size(G.pillars,1);
+[~, sort_idx] = sort(G.pillars(:,1));  % sort by x-coordinate
+ph = gobjects(Np,1);
 for i=1:Np, ph(i)=plot3(ax,[G.pillars(i,1) G.pillars(i,1)],[G.pillars(i,2) G.pillars(i,2)],[0 0],'Color',[0.75 0.75 0.75],'LineWidth',3); end
-for i=1:Np
+for si=1:Np
+    i = sort_idx(si);
     zt=G.pillars(i,4); nf=max(1,round(dt_grow*fps));
     for fr=1:nf, t=fr/nf; set(ph(i),'ZData',[0 t*zt]); wf(); end
 end
